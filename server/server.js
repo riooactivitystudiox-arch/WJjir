@@ -13,8 +13,14 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const ROOT = path.join(__dirname, '..');
-const uploadDir = path.join(ROOT, 'public', 'uploads');
-fs.mkdirSync(uploadDir, { recursive: true });
+
+// Pakai folder uploads di root (aman di Railway)
+const uploadDir = path.join(ROOT, 'uploads');
+try {
+  fs.mkdirSync(uploadDir, { recursive: true });
+} catch (e) {
+  console.warn('Upload dir warning:', e.message);
+}
 
 const mongoUri = process.env.MONGODB_URI || process.env.DATABASE_URL;
 
@@ -92,7 +98,6 @@ app.get('*', (req, res, next) => {
 });
 
 app.get('/', (req, res) => res.redirect(req.session.user ? '/home.html' : '/login.html'));
-
 app.get('/api/me', (req, res) => res.json({ user: req.session.user || null }));
 
 app.get('/api/members-public', async (req, res) => {
@@ -144,7 +149,6 @@ app.get('/api/members', requireAuth, async (req, res) => {
   }
 });
 
-// Admin/Creator: create member
 app.post('/api/members', requireAdmin, async (req, res) => {
   try {
     const { username, display_name, role = 'Member', password = '111wj', verified = false, bio = '' } = req.body;
@@ -160,7 +164,6 @@ app.post('/api/members', requireAdmin, async (req, res) => {
 
     const allowedRoles = ['Member', 'Admin', 'Creator'];
     const finalRole = allowedRoles.includes(role) ? role : 'Member';
-    // Only Creator can create another Creator
     if (finalRole === 'Creator' && req.session.user.role !== 'Creator') {
       return res.status(403).json({ error: 'Hanya Creator yang bisa menambah Creator.' });
     }
@@ -188,7 +191,6 @@ app.patch('/api/members/:id', requireAdmin, async (req, res) => {
     const target = await Member.findById(req.params.id);
     if (!target) return res.status(404).json({ error: 'Member tidak ditemukan.' });
 
-    // Protect Creator account from non-Creator
     if (target.role === 'Creator' && req.session.user.role !== 'Creator') {
       return res.status(403).json({ error: 'Tidak bisa mengedit Creator.' });
     }
@@ -240,7 +242,6 @@ app.post('/api/members/:id/reset-password', requireAdmin, async (req, res) => {
   }
 });
 
-// Member can edit own profile
 app.patch('/api/profile', requireAuth, async (req, res) => {
   try {
     const { display_name, bio, avatar } = req.body;
