@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memories · WaliJomok</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+    <div class="header-nav">
+        <span class="left-title">Memories</span>
+        <a href="../home.html" class="right-logo">
+            <img src="../assets/logo-wj.png" alt="WJ">
+        </a>
+    </div>
+
+    <div class="gallery-wrapper">
+        <div class="gallery-title">Albums</div>
+        <div id="galleryGrid" class="gallery-grid"></div>
+        <div class="page-footer">WaliJomok · WJ · 2026</div>
+    </div>
+</div>
+
+<div id="lightbox" class="lightbox-overlay" onclick="closeLightbox()">
+    <button class="lightbox-close" onclick="event.stopPropagation(); closeLightbox()">✕</button>
+    <img id="lightboxImage" class="lightbox-content" src="" alt="Memory">
+</div>
+
+<script src="../auth.js"></script><script>async function renderGallery(){const r=await fetch('/api/memories');const photos=await r.json();const grid=document.getElementById('galleryGrid');grid.innerHTML='';photos.forEach(p=>{const div=document.createElement('div');div.className='gallery-item';div.onclick=()=>openLightbox(p.image_url);div.innerHTML=`<img src="${p.image_url}" alt="${p.title}">`;grid.appendChild(div)});if(window.currentUser?.role==='Admin'){const add=document.createElement('a');add.href='../admin.html';add.className='add-photo-btn';add.textContent='+';grid.appendChild(add)}}function openLightbox(src){document.getElementById('lightbox').classList.add('active');document.getElementById('lightboxImage').src=src;document.body.style.overflow='hidden'}function closeLightbox(){document.getElementById('lightbox').classList.remove('active');document.body.style.overflow='auto'}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox()});setTimeout(renderGallery,1000);</script>
+</body>
+</html>

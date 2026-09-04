@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members · WaliJomok</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+    <div class="header-nav">
+        <span class="left-title">Members</span>
+        <a href="../home.html" class="right-logo">
+            <img src="../assets/logo-wj.png" alt="WJ">
+        </a>
+    </div>
+
+    <!-- 16:9 BANNER (customizable) -->
+    <div class="banner-wrapper">
+        <img src="../assets/banner-group.jpg" alt="WaliJomok Banner" id="communityBanner">
+        <div class="banner-overlay">
+            <span>WaliJomok · Official Group</span>
+        </div>
+    </div>
+
+    <div class="community-description">
+        <div class="title">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            Tentang Komunitas
+        </div>
+        <div class="desc-text">
+            Daftar resmi member <span>WaliJomok</span>. Avatar masih blank dan siap di-custom. Verified badge hanya untuk Admin.
+        </div>
+    </div>
+
+    <div class="notification-wrapper">
+        <div class="notification-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        </div>
+        <div class="notification-text">
+            <marquee behavior="scroll" direction="left" scrollamount="3">Note: Semua avatar masih blank.png — silakan ganti sesuai foto masing-masing member · Total 11 members</marquee>
+        </div>
+    </div>
+
+    <div id="memberGrid" class="profile-grid"></div>
+    <div class="page-footer">WaliJomok · WJ · 2026</div>
+</div>
+<script src="../auth.js"></script><script>
+async function load(){const r=await fetch('/api/members');const ms=await r.json();const grid=document.getElementById('memberGrid');grid.innerHTML=ms.map(m=>`<a href="../member/${m.username}.html" class="profile-item" data-role="${m.role}"><div class="avatar"><img src="${m.avatar||'../images/blank.png'}" alt="${m.display_name}"></div><div class="member-row"><span class="member-name">${m.display_name}</span>${m.verified?'<span class="verified-badge">✓</span>':''}</div><div class="member-role">${m.role}</div></a>`).join('');document.querySelector('.notification-text marquee').textContent=`Total ${ms.length} members · Semua member dapat login dan memakai Global Chat`;}load();</script>
+</body>
+</html>
