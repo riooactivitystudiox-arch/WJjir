@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin · WaliJomok</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin{padding:0 1rem 2rem}
+    .box{border:1px solid #222;background:#080808;border-radius:16px;padding:16px;margin-bottom:14px}
+    .box h3{margin:0 0 12px}
+    .box input,.box textarea,.box select{width:100%;box-sizing:border-box;background:#111;border:1px solid #292929;color:#fff;padding:11px;border-radius:10px;margin:6px 0 10px}
+    .box button{padding:10px 13px;border-radius:10px;border:1px solid #333;background:#fff;color:#000;font-weight:700;cursor:pointer;margin-right:6px;margin-top:4px}
+    .item{padding:12px 0;border-top:1px solid #191919}
+    .item:first-child{border-top:0}
+    .danger{background:#3b0b0b!important;color:#fff!important;border-color:#5a1a1a!important}
+    .small{font-size:.75rem;color:#777}
+    .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .pill{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.7rem;font-weight:700}
+    .pill-Creator{background:rgba(251,191,36,.15);color:#fbbf24}
+    .pill-Admin{background:rgba(59,130,246,.15);color:#60a5fa}
+    .pill-Member{background:rgba(255,255,255,.06);color:#aaa}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header-nav">
+    <span class="left-title">Admin Panel</span>
+    <a href="home.html" class="right-logo"><img src="assets/logo-wj.png" alt="WJ"></a>
+  </div>
+
+  <div class="admin">
+    <div class="box">
+      <h3>Buat Post</h3>
+      <textarea id="postContent" rows="4" placeholder="Isi post..."></textarea>
+      <input id="postImage" placeholder="URL gambar (opsional)">
+      <button onclick="createPost()">Publish Post</button>
+    </div>
+
+    <div class="box">
+      <h3>Tambah Memory</h3>
+      <input id="memTitle" placeholder="Judul">
+      <input id="memDesc" placeholder="Deskripsi">
+      <input id="memUrl" placeholder="URL gambar (opsional jika upload)">
+      <input id="memFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+      <button onclick="createMemory()">Tambah Memory</button>
+      <div class="small">Upload max 5 MB. Di Railway file bisa hilang saat redeploy jika tidak pakai object storage.</div>
+    </div>
+
+    <div class="box">
+      <h3>Tambah Member Baru</h3>
+      <input id="newUsername" placeholder="username (huruf kecil, tanpa spasi)">
+      <input id="newDisplay" placeholder="Display Name">
+      <select id="newRole">
+        <option value="Member">Member</option>
+        <option value="Admin">Admin</option>
+        <option value="Creator">Creator</option>
+      </select>
+      <input id="newPassword" placeholder="Password (default 111wj)" value="111wj">
+      <button onclick="addMember()">Tambah Member</button>
+    </div>
+
+    <div class="box">
+      <h3>Daftar Members</h3>
+      <div id="members"></div>
+    </div>
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+setTimeout(async () => {
+  const u = window.currentUser;
+  if (!u || (u.role !== 'Admin' && u.role !== 'Creator')) {
+    location.href = 'home.html';
+    return;
+  }
+  // Hide Creator option if current user is not Creator
+  if (u.role !== 'Creator') {
+    [...newRole.options].forEach(o => { if (o.value === 'Creator') o.remove(); });
+  }
+  loadMembers();
+}, 500);
+
+async function createPost() {
+  const content = postContent.value.trim();
+  if (!content) return;
+  const r = await fetch('/api/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content, image_url: postImage.value })
+  });
+  if (r.ok) {
+    postContent.value = '';
+    postImage.value = '';
+    alert('Post dibuat.');
+  } else {
+    const d = await r.json();
+    alert(d.error || 'Gagal');
+  }
+}
+
+async function createMemory() {
+  const fd = new FormData();
+  fd.append('title', memTitle.value);
+  fd.append('description', memDesc.value);
+  if (memFile.files[0]) fd.append('image', memFile.files[0]);
+  else fd.append('image_url', memUrl.value);
+  const r = await fetch('/api/memories', { method: 'POST', body: fd });
+  const d = await r.json();
+  alert(r.ok ? 'Memory ditambahkan' : (d.error || 'Gagal'));
+  if (r.ok) {
+    memTitle.value = '';
+    memDesc.value = '';
+    memUrl.value = '';
+    memFile.value = '';
+  }
+}
+
+async function addMember() {
+  const body = {
+    username: newUsername.value.trim(),
+    display_name: newDisplay.value.trim(),
+    role: newRole.value,
+    password: newPassword.value || '111wj'
+  };
+  const r = await fetch('/api/members', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (r.ok) {
+    alert('Member ditambahkan: ' + d.display_name);
+    newUsername.value = '';
+    newDisplay.value = '';
+    newPassword.value = '111wj';
+    loadMembers();
+  } else {
+    alert(d.error || 'Gagal menambah member');
+  }
+}
+
+async function loadMembers() {
+  const r = await fetch('/api/members');
+  const ms = await r.json();
+  members.innerHTML = ms.map(m => `
+    <div class="item">
+      <b>${m.display_name}</b>
+      <span class="pill pill-${m.role}">${m.role}</span>
+      <span class="small"> · ${m.username} · ${m.active ? 'aktif' : 'nonaktif'}</span>
+      <div class="row">
+        <button onclick="editMember('${m.id}','${escapeHtml(m.display_name)}','${m.role}','${escapeHtml(m.bio || '')}')">Edit</button>
+        <button onclick="resetPass('${m.id}')">Reset Pass → 111wj</button>
+        <button onclick="toggle('${m.id}', ${!m.active})">${m.active ? 'Nonaktifkan' : 'Aktifkan'}</button>
+        ${m.role !== 'Creator' ? `<button class="danger" onclick="deleteMember('${m.id}','${escapeHtml(m.display_name)}')">Hapus</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+async function editMember(id, display, role, bio) {
+  const newDisplay = prompt('Display Name:', display);
+  if (newDisplay === null) return;
+  const newBio = prompt('Bio / Deskripsi:', bio);
+  if (newBio === null) return;
+  let newRole = role;
+  if (window.currentUser.role === 'Creator') {
+    const r = prompt('Role (Creator / Admin / Member):', role);
+    if (r === null) return;
+    newRole = r;
+  }
+  const res = await fetch('/api/members/' + id, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ display_name: newDisplay, bio: newBio, role: newRole })
+  });
+  const d = await res.json();
+  if (!res.ok) alert(d.error || 'Gagal edit');
+  loadMembers();
+}
+
+async function resetPass(id) {
+  if (!confirm('Reset password menjadi 111wj?')) return;
+  await fetch('/api/members/' + id + '/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: '111wj' })
+  });
+  alert('Password direset ke 111wj');
+}
+
+async function toggle(id, active) {
+  await fetch('/api/members/' + id, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active })
+  });
+  loadMembers();
+}
+
+async function deleteMember(id, name) {
+  if (!confirm('Hapus member "' + name + '"? Tindakan ini permanen.')) return;
+  const r = await fetch('/api/members/' + id, { method: 'DELETE' });
+  const d = await r.json();
+  if (!r.ok) alert(d.error || 'Gagal hapus');
+  loadMembers();
+}
+</script>
+</body>
+</html>

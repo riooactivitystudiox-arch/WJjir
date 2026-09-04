@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Profile · WaliJomok</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .profile-box{padding:0 1.15rem 2rem}
+    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:1.2rem;margin-bottom:1rem}
+    .card h3{margin:0 0 .8rem;font-size:1rem}
+    label{display:block;font-size:.78rem;color:#999;margin:.6rem 0 .35rem}
+    input,textarea{width:100%;box-sizing:border-box;background:#111;border:1px solid #292929;color:#fff;padding:12px;border-radius:10px;font:inherit}
+    button{margin-top:12px;padding:11px 16px;border-radius:10px;border:0;background:#fff;color:#000;font-weight:700;cursor:pointer}
+    .avatar-preview{width:84px;height:84px;border-radius:50%;object-fit:cover;border:2px solid #333;margin-bottom:10px;background:#111}
+    .role-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;margin-top:6px}
+    .role-Creator{background:rgba(251,191,36,.15);color:#fbbf24}
+    .role-Admin{background:rgba(59,130,246,.15);color:#60a5fa}
+    .role-Member{background:rgba(255,255,255,.06);color:#aaa}
+    .msg{min-height:20px;font-size:.85rem;margin-top:10px;color:#4ade80}
+    .err{color:#f87171}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header-nav">
+    <span class="left-title">My Profile</span>
+    <a href="home.html" class="right-logo"><img src="assets/logo-wj.png" alt="WJ"></a>
+  </div>
+
+  <div class="profile-box">
+    <div class="card">
+      <h3>Informasi Akun</h3>
+      <img id="avatarPreview" class="avatar-preview" src="images/blank.png" alt="avatar">
+      <div><b id="uname">-</b></div>
+      <div id="rolePill" class="role-pill">Member</div>
+    </div>
+
+    <div class="card">
+      <h3>Edit Profile</h3>
+      <label>Display Name</label>
+      <input id="displayName" maxlength="40" placeholder="Nama tampilan">
+      <label>Bio / Deskripsi</label>
+      <textarea id="bio" rows="4" maxlength="500" placeholder="Ceritakan singkat tentang dirimu..."></textarea>
+      <label>Ganti Avatar (opsional)</label>
+      <input id="avatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+      <button onclick="saveProfile()">Simpan Perubahan</button>
+      <div id="msg" class="msg"></div>
+    </div>
+  </div>
+  <div class="page-footer">WaliJomok · WJ · 2026</div>
+</div>
+<script src="auth.js"></script>
+<script>
+  setTimeout(() => {
+    if (!window.currentUser) return;
+    const u = window.currentUser;
+    uname.textContent = u.username;
+    displayName.value = u.display_name || '';
+    bio.value = u.bio || '';
+    avatarPreview.src = u.avatar || 'images/blank.png';
+    rolePill.textContent = u.role;
+    rolePill.className = 'role-pill role-' + u.role;
+  }, 400);
+
+  async function saveProfile() {
+    msg.className = 'msg';
+    msg.textContent = 'Menyimpan...';
+    try {
+      // update text fields
+      const r1 = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          display_name: displayName.value.trim(),
+          bio: bio.value
+        })
+      });
+      const d1 = await r1.json();
+      if (!r1.ok) throw new Error(d1.error || 'Gagal update');
+
+      // upload avatar if selected
+      if (avatarFile.files[0]) {
+        const fd = new FormData();
+        fd.append('avatar', avatarFile.files[0]);
+        const r2 = await fetch('/api/profile/avatar', { method: 'POST', body: fd });
+        const d2 = await r2.json();
+        if (!r2.ok) throw new Error(d2.error || 'Gagal upload avatar');
+        window.currentUser = d2.user;
+        avatarPreview.src = d2.user.avatar;
+      } else {
+        window.currentUser = d1.user;
+      }
+
+      msg.textContent = 'Profile berhasil disimpan!';
+      avatarFile.value = '';
+    } catch (e) {
+      msg.className = 'msg err';
+      msg.textContent = e.message;
+    }
+  }
+</script>
+</body>
+</html>
